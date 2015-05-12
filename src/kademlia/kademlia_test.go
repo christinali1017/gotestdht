@@ -28,8 +28,8 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 }
 
 func TestPing(t *testing.T) {
-	instance1 := NewKademlia("localhost:7890")
-	instance2 := NewKademlia("localhost:7891")
+	instance1 := NewKademlia(CreateIdForTest(string(1)), "localhost:7890")
+	instance2 := NewKademlia(CreateIdForTest(string(2)), "localhost:7891")
 	host2, port2, _ := StringToIpPort("localhost:7891")
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
@@ -52,9 +52,9 @@ func TestPing(t *testing.T) {
 }
 
 func TestFindNode(t *testing.T) {
-	instance1 := NewKademlia("localhost:7892")
-	instance2 := NewKademlia("localhost:7893")
-	instance3 := NewKademlia("localhost:7894")
+	instance1 := NewKademlia(CreateIdForTest(string(1)), "localhost:7892")
+	instance2 := NewKademlia(CreateIdForTest(string(2)), "localhost:7893")
+	instance3 := NewKademlia(CreateIdForTest(string(3)), "localhost:7894")
 	host2, port2, _ := StringToIpPort("localhost:7893")
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
@@ -93,8 +93,8 @@ func TestFindNode(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	instance1 := NewKademlia("localhost:7895")
-	instance2 := NewKademlia("localhost:7896")
+	instance1 := NewKademlia(CreateIdForTest(string(1)), "localhost:7895")
+	instance2 := NewKademlia(CreateIdForTest(string(2)), "localhost:7896")
 	host2, port2, _ := StringToIpPort("localhost:7896")
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
@@ -131,9 +131,9 @@ func TestStore(t *testing.T) {
 }
 
 func TestFindValue(t *testing.T) {
-	instance1 := NewKademlia("localhost:7897")
-	instance2 := NewKademlia("localhost:7898")
-	instance3 := NewKademlia("localhost:7899")
+	instance1 := NewKademlia(CreateIdForTest(string(1)), "localhost:7897")
+	instance2 := NewKademlia(CreateIdForTest(string(2)), "localhost:7898")
+	instance3 := NewKademlia(CreateIdForTest(string(3)), "localhost:7899")
 	host2, port2, _ := StringToIpPort("localhost:7898")
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
