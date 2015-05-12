@@ -68,10 +68,10 @@ type Valuer struct {
 	NodeID ID
 }
 
-func NewKademlia(laddr string) *Kademlia {
+func NewKademlia(nodeid ID, laddr string) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
-	k.NodeID = NewRandomID()
+	k.NodeID = nodeid
 	for i := 0; i < len(k.buckets); i++ {
 		k.buckets[i] = list.New()
 	}
@@ -642,7 +642,8 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 
 //rpc query for iterativefindnode
 func (k *Kademlia) rpcQuery(node Contact, searchId ID, res chan []Contact) error {
-	client, err := rpc.DialHTTP("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)))
+	client, err := rpc.DialHTTPPath("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(node.Port)))
+	// client, err := rpc.DialHTTP("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)))
 
 	if err != nil {
 		return err
