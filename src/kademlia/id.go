@@ -70,16 +70,6 @@ func NewRandomID() (ret ID) {
 	return
 }
 
-func CreateIdForTest(id string) (ret ID) {
-	if len(id) > 160 {
-		id = id[0:160]
-	}
-	for i := 0; i < len(id); i++ {
-		ret[i] = id[i]
-	}
-	return 
-}
-
 // Generate an ID identical to another.
 func CopyID(id ID) (ret ID) {
 	for i := 0; i < IDBytes; i++ {

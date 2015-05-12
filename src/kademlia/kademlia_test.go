@@ -7,6 +7,17 @@ import (
 	"testing"
 )
 
+func CreateIdForTest(id string) (ret ID) {
+	if len(id) > 160 {
+		id = id[0:160]
+	}
+	for i := 0; i < len(id); i++ {
+		ret[i] = id[i]
+	}
+	return 
+}
+
+
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 	hostString, portString, err := net.SplitHostPort(laddr)
 	if err != nil {
@@ -173,6 +184,11 @@ func TestFindValue(t *testing.T) {
 	if responsenode != responsevalue {
 		t.Error("Node in Instance2 are stored incorrectly")
 	}
-
 	return
 }
+
+
+func TestIterativeFindNode(t *testing.T){
+	return
+}
+
