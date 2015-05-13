@@ -188,7 +188,11 @@ func TestFindValue(t *testing.T) {
 }
 
 
-func TestIterativeFindNode(t *testing.T){
+func TestIterativeFindNode(t *testing.T) {
+	
+	for i := 0; i < 2000; i++ {
+
+	}
 	return
 }
 

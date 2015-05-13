@@ -388,6 +388,8 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				}
 
 				if !isUpdated {
+					// if it is not improved, then the initiating node sends a FIND_* RPC to each of the k closest nodes 
+					// that it has not already queried.
 					stopper.stopMutex.Lock()
 					stopper.value = 2
 					stopper.stopMutex.Unlock()
