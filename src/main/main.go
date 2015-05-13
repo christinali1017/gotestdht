@@ -43,7 +43,7 @@ func main() {
 
 	// Create the Kademlia instance
 	fmt.Printf("kademlia starting up!\n")
-	kadem := kademlia.NewKademlia(NewRandomID(), listenStr)
+	kadem := kademlia.NewKademlia(kademlia.NewRandomID(), listenStr)
 
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
