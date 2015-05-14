@@ -295,7 +295,7 @@ func TestIterativeFindNode(t *testing.T) {
 	fmt.Println("..............Compare......")
 
 	//compare result
-	for i := 0; i < MAX_BUCKET_SIZE; i++ {
+	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContacts); i++ {
 		if !theoreticalRes[i].SelfContact.NodeID.Equals(resContacts[i].NodeID) {
 			t.Error("TestIterativeFindNode error, the nodes return are not the closet ones")
 		}
