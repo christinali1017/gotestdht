@@ -201,36 +201,65 @@ func TestIterativeFindNode(t *testing.T) {
 
 	}
 
+
+	//1-9 ping 0, 11-19 ping 10.......91-99 ping 90
+	for i := 0; i < 10; i++ {
+		start := i * 10 
+		address := instancesAddr[start]
+		host, port, _ := StringToIpPort(address)
+		for j := start+1; j < instances + 10; j ++ {
+			instance[j].DoPing(host, port)
+		}
+	}
+
 	//0 ping 1-9, 10 ping 11-19.......90 ping 91-99
+	// for i := 0; i < 10; i++ {
+	// 	start := i * 10 
+	// 	instance := instances[start]
+	// 	for j := start+1; j < instances + 10; j ++ {
+	// 		host, port, _ := StringToIpPort(instancesAddr[j])
+	// 		instance.DoPing(host, port)
+	// 	}
+	// }
+
+
+	//check if contacts is updated
 	for i := 0; i < 10; i++ {
 		start := i * 10 
 		instance := instances[start]
 		for j := start+1; j < instances + 10; j ++ {
-			host, port, _ := StringToIpPort(instancesAddr[j])
-			instance.DoPing(host, port)
+			contact, err := instance.FindContact(instances[j].NodeID)
+			if err != nil {
+				t.Error("Instance" + j + "'s contact not found in Instance" + start + "'s contact list")
+				return
+			}
+
+			if !contact.NodeID.Equals(instances[j].NodeID) {
+				t.Error("Instance" + j + "'s contact incorrectly stored in Instance" + start + "'s contact list")
+			}
 		}
 	}
 
+	for i := 0; i < 10; i++ {
+		start := i * 10 
+		instance := instances[start]
+		for j := start+1; j < instances + 10; j ++ {
 
+			contact, err := instances[j].FindContact(instance.NodeID)
+			if err != nil {
+				t.Error("Instance" + start + "'s contact not found in Instance" + j + "'s contact list")
+				return
+			}
 
-	host2, port2, _ := StringToIpPort("localhost:7893")
-	instance1.DoPing(host2, port2)
-	contact2, err := instance1.FindContact(instance2.NodeID)
-	if err != nil {
-		t.Error("Instance 2's contact not found in Instance 1's contact list")
-		return
+			if !contact.NodeID.Equals(instance.NodeID) {
+				t.Error("Instance" + start + "'s contact incorrectly stored in Instance" + j + "'s contact list")
+			}
+		}
 	}
-	contact1, err := instance2.FindContact(instance1.NodeID)
-	if err != nil {
-		t.Error("Instance 1's contact not found in Instance 2's contact list")
-		return
-	}
-	if contact1.NodeID != instance1.NodeID {
-		t.Error("Instance 1 ID incorrectly stored in Instance 2's contact list")
-	}
-	if contact2.NodeID != instance2.NodeID {
-		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
-	}
+
+	//check iterative find node 0 find 50
+	resNodes := instances[0].itera
+
 	instance3.DoPing(host2, port2)
 	instance1ID := instance1.SelfContact.NodeID
 	instance2ID := instance2.SelfContact.NodeID

@@ -370,7 +370,6 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 		contact := initializeContacts[i]
 		seenMap[contact.NodeID] = true
 		unqueriedList.list[i] = k.ContactToDistanceContact(contact, id)
-		// shortlist = append(shortlist, k.ContactToDistanceContact(contact, id))
 	}
 
 	//stop channel for time
@@ -423,40 +422,6 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 					}
 					unqueriedList.mutex.Unlock()
 				}
-
-
-
-
-
-
-				// for i := 0; i < len(shortlist) && i < MAX_BUCKET_SIZE; i++ {
-				// 	if !oldVersion[i].SelfContact.NodeID.Equals(shortlist[i].SelfContact.NodeID) {
-				// 		isUpdated = true
-				// 		if len(shortlist) <= 20 {
-				// 			oldVersion = shortlist
-				// 		}
-				// 		oldVersion = shortlist[:MAX_BUCKET_SIZE+1]
-				// 	}
-				// }
-
-				// if !isUpdated {
-				// 	// if it is not improved, then the initiating node sends a FIND_* RPC to each of the k closest nodes 
-				// 	// that it has not already queried.
-				// 	stopper.stopMutex.Lock()
-				// 	stopper.value = 2
-				// 	stopper.stopMutex.Unlock()
-				// 	stop <- true
-				// 	break
-				// }
-
-			// case contact := <-deleteNodes:
-			// 	for i := 0; i < len(shortlist); i++ {
-			// 		if shortlist[i].SelfContact.NodeID.Equals(contact.NodeID) {
-			// 			shortlist = append(shortlist[:i], shortlist[i+1:]...)
-			// 			break
-			// 		}
-			// 	}
-			// 	delete(seenMap, contact.NodeID)
 			default:
 			}
 		}
@@ -972,7 +937,7 @@ func (a ByDistance) Less(i, j int) bool { return a[i].Distance.Less(a[j].Distanc
 func (k *Kademlia) ContactsToString(contacts []Contact) string {
 	var res string
 	for _, contact := range contacts {
-		res = res + "{NodeID: " + contact.NodeID.AsString() + ", Host: " + contact.Host.String() + ", Port: " + strconv.Itoa(int(contact.Port)) + "},"
+		res = res + "{NodeID: " + contact.NodeID.AsString() + ", Host: " + contact.Host.String() + ", Port: " + strconv.Itoa(int(contact.Port)) + "}"
 	}
 	return res[:len(res)]
 }
