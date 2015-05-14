@@ -365,11 +365,13 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 
 	checkImroved := new(CheckImproved)
 
+	//initialize unqueriedlist and seenmap
 
-	for i := 0; i < 3; i++ {
+	fmt.Println(".........find closet contact........." + k.ContactsToString(initializeContacts))
+	for i := 0; i < 3 && i < len(initializeContacts); i++ {
 		contact := initializeContacts[i]
 		seenMap[contact.NodeID] = true
-		unqueriedList.list[i] = k.ContactToDistanceContact(contact, id)
+		unqueriedList.list = append(unqueriedList.list, k.ContactToDistanceContact(contact, id))
 	}
 
 	//stop channel for time
