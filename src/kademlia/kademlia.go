@@ -78,6 +78,12 @@ type ResultShortlist struct {
 	mutex sync.RWMutex
 }
 
+//CHECK IF UNQUERIED LIST IS IMPROVED
+type CheckImproved struct {
+	value bool
+	mutex sync.RWMutex
+}
+
 func NewKademlia(nodeid ID, laddr string) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
@@ -339,15 +345,11 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	seenMap := make(map[ID]bool)
 
 	//nodes that have not been queried yet
-	// unqueriedList := make([]ContactDistance, 0)
 	unqueriedList := new(UnqueriedList)
 	unqueriedList.list = make([]ContactDistance, 0)
 
 	//channel for query result
 	res := make(chan []Contact, 120)
-
-	//channel for nodes need to be deleted
-	//deleteNodes := make(chan Contact, 120)
 
 	//stopper for rpc request
 	stopper := new(Stopper)
@@ -355,17 +357,13 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	//initialize shortlist, seenmap
 	initializeContacts := k.FindClosestContacts(id, k.NodeID)[:3]
 
-	//use to record how many rpc query have send and receive respond
-	// counter := new(Counter)
-
-	//k contact of old short list
-	// oldVersion := make([]ContactDistance, MAX_BUCKET_SIZE)
-
-	//bool for check if the shortlist is updated
-	// isUpdated := false
-
 	//result to return
 	resultShortlist := new(ResultShortlist)
+
+	//global closest 
+	closest := k.SelfContact.NodeID.Xor(id)
+
+	checkImroved := new(CheckImproved)
 
 
 	for i := 0; i < 3; i++ {
@@ -397,7 +395,40 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				//sort shortlist
 				sort.Sort(ByDistance(unqueriedList.list))
 
-				//check if short list is improved
+				//check if short list is improved, first check if we need to check if the shortlist is improved
+
+				checkImroved.mutex.Lock()
+				ifImproved := checkImroved.value
+				checkImroved.mutex.Unlock()
+
+				if ifImproved == true {
+					unqueriedList.mutex.RLock()
+					if len(unqueriedList.list) == 0 {
+						if len(res) == 0 {
+							stopper.stopMutex.Lock()
+							stopper.value = 2
+							stopper.stopMutex.Unlock()
+							stop <- true
+						} else {
+							continue;
+						}
+					}
+
+					if unqueriedList.list[0].SelfContact.NodeID.Xor(id).Compare(closest) == 1 {
+
+						checkImroved.mutex.Lock()
+						checkImroved.value = false
+						checkImroved.mutex.Unlock()
+
+					}
+					unqueriedList.mutex.Unlock()
+				}
+
+
+
+
+
+
 				// for i := 0; i < len(shortlist) && i < MAX_BUCKET_SIZE; i++ {
 				// 	if !oldVersion[i].SelfContact.NodeID.Equals(shortlist[i].SelfContact.NodeID) {
 				// 		isUpdated = true
@@ -462,10 +493,6 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				}
 				stopper.stopMutex.RUnlock()
 
-				// front := unqueriedList.Front()
-				// contact := front.Value.(Contact)
-				// unqueriedList.Remove(front)
-
 				//get first contact from unqueriedList
 				unqueriedList.mutex.RLock()
 				front := unqueriedList.list[0]
@@ -480,25 +507,27 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				contact := front.SelfContact
 
 				go func() {
-					err := k.rpcQuery(contact, id, res)
+					err, response := k.rpcQuery(contact, id, res)
 					// if err != nil {
 					// 	deleteNodes <- contact
 					// } else {
 					if err == nil {
 						// add this active node to shortlist
 						shortlist <- contact
-						// counter.counterMutex.Lock()
-						// counter.value++
-						// counter.counterMutex.Unlock()
 
-						// counter.counterMutex.RLock()
 						if len(shortlist) >= MAX_BUCKET_SIZE {
 							stopper.stopMutex.Lock()
 							stopper.value = 1
 							stopper.stopMutex.Unlock()
 							stop <- true
 						}
-						// counter.counterMutex.RUnlock()
+
+						//if is improved add the response to the res 
+						checkImroved.mutex.RLock()
+						if checkImroved.value == true {
+							res <- response
+						}
+						checkImroved.mutex.RUnlock()
 					}
 				}()
 			}
@@ -535,6 +564,42 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	resultShortlist.mutex.Unlock()
 	return resultShortlist.list	
 }
+
+//rpc query for iterativefindnode
+func (k *Kademlia) rpcQuery(node Contact, searchId ID, res chan []Contact) (error, []Contact) {
+	client, err := rpc.DialHTTPPath("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(node.Port)))
+	// client, err := rpc.DialHTTP("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)))
+
+	if err != nil {
+		return err, nil
+	}
+
+	//create find node request and result
+	findNodeRequest := new(FindNodeRequest)
+	findNodeRequest.Sender = k.SelfContact
+	findNodeRequest.MsgID = NewRandomID()
+	findNodeRequest.NodeID = searchId
+
+	findNodeRes := new(FindNodeResult)
+
+	//find node
+	err = client.Call("KademliaCore.FindNode", findNodeRequest, findNodeRes)
+
+	if err != nil {
+		return err, nil
+	}
+
+	defer client.Close()
+
+	//update contact
+	k.UpdateContact(node)
+	for _, contact := range findNodeRes.Nodes {
+		k.UpdateContact(contact)
+	}
+
+	return err, findNodeRes.Nodes
+}
+
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) string {
 	// For project 2!
@@ -707,42 +772,6 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 	return returnString
 }
 
-//rpc query for iterativefindnode
-func (k *Kademlia) rpcQuery(node Contact, searchId ID, res chan []Contact) error {
-	client, err := rpc.DialHTTPPath("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(node.Port)))
-	// client, err := rpc.DialHTTP("tcp", node.Host.String()+":"+strconv.Itoa(int(node.Port)))
-
-	if err != nil {
-		return err
-	}
-
-	//create find node request and result
-	findNodeRequest := new(FindNodeRequest)
-	findNodeRequest.Sender = k.SelfContact
-	findNodeRequest.MsgID = NewRandomID()
-	findNodeRequest.NodeID = searchId
-
-	findNodeRes := new(FindNodeResult)
-
-	//find node
-	err = client.Call("KademliaCore.FindNode", findNodeRequest, findNodeRes)
-
-	if err != nil {
-		return err
-	}
-
-	defer client.Close()
-
-	res <- findNodeRes.Nodes
-
-	//update contact
-	k.UpdateContact(node)
-	for _, contact := range findNodeRes.Nodes {
-		k.UpdateContact(contact)
-	}
-
-	return err
-}
 func (k *Kademlia) iterFindValuQeuery(contact Contact, searchKey ID, contactChan chan []Contact, valuerChan chan Valuer, deleteChan chan ID) error {
 	client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
 	if err != nil {

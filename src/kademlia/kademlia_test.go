@@ -189,10 +189,59 @@ func TestFindValue(t *testing.T) {
 
 
 func TestIterativeFindNode(t *testing.T) {
-	
-	for i := 0; i < 2000; i++ {
+	instances := make([]kademlia, 100)
+	instancesAddr := make([]string, 100)
+
+	//create 100 kademlia instance
+	for i := 0; i < 100; i++ {
+		port := i + 8000
+		address := "localhost:" + port
+		instancesAddr[i] = address
+		instances[i] = NewKademlia(CreateIdForTest(string(i)), address)
 
 	}
+
+	//0 ping 1-9, 10 ping 11-19.......90 ping 91-99
+	for i := 0; i < 10; i++ {
+		start := i * 10 
+		instance := instances[start]
+		for j := start+1; j < instances + 10; j ++ {
+			host, port, _ := StringToIpPort(instancesAddr[j])
+			instance.DoPing(host, port)
+		}
+	}
+
+
+
+	host2, port2, _ := StringToIpPort("localhost:7893")
+	instance1.DoPing(host2, port2)
+	contact2, err := instance1.FindContact(instance2.NodeID)
+	if err != nil {
+		t.Error("Instance 2's contact not found in Instance 1's contact list")
+		return
+	}
+	contact1, err := instance2.FindContact(instance1.NodeID)
+	if err != nil {
+		t.Error("Instance 1's contact not found in Instance 2's contact list")
+		return
+	}
+	if contact1.NodeID != instance1.NodeID {
+		t.Error("Instance 1 ID incorrectly stored in Instance 2's contact list")
+	}
+	if contact2.NodeID != instance2.NodeID {
+		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
+	}
+	instance3.DoPing(host2, port2)
+	instance1ID := instance1.SelfContact.NodeID
+	instance2ID := instance2.SelfContact.NodeID
+	instance3ID := instance3.SelfContact.NodeID
+	contact, err := instance1.FindContact(instance2ID)
+	if err != nil {
+		t.Error("ERR: Unable to find contact with node ID")
+		return
+	}
+
+	res := instances[0].
 	return
 }
 

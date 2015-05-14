@@ -32,7 +32,7 @@ func (id ID) Compare(other ID) int {
 		difference := int(id[i]) - int(other[i])
 		switch {
 		case difference == 0:
-			continue
+			return 0
 		case difference < 0:
 			return -1
 		case difference > 0:
