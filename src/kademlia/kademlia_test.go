@@ -220,6 +220,22 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 	}
 
+	for i := 0; i < 100; i++ {
+		address := instancesAddr[i]
+		host, port, _ := StringToIpPort(address)
+		start := i - 5;
+		end := i + 5;
+		if start < 0 {
+			start += 100
+		}
+		if end > 100 {
+			end -= 100
+		}
+		for j := start; j < end; j ++ {
+			instances[j].DoPing(host, port)
+		}
+	}
+
 	fmt.Println("..............Check if contacts are stored......")
 	//check if contacts is updated
 	for i := 0; i < 10; i++ {
@@ -254,6 +270,56 @@ func TestIterativeFindNode(t *testing.T) {
 			}
 		}
 	}
+
+
+	for i := 0; i < 100; i++ {
+		instance := instances[i]
+		start := i - 5;
+		end := i + 5;
+		if start < 0 {
+			start += 100
+		}
+		if end > 100 {
+			end -= 100
+		}
+		for j := start; j < end; j ++ {
+			contact, err := instances[j].FindContact(instance.NodeID)
+			if err != nil {
+				t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+				return
+			}
+
+			if !contact.NodeID.Equals(instance.NodeID) {
+				t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+			}
+		}
+	}
+
+
+	for i := 0; i < 100; i++ {
+		instance := instances[i]
+		start := i - 5;
+		end := i + 5;
+		if start < 0 {
+			start += 100
+		}
+		if end > 100 {
+			end -= 100
+		}
+		for j := start; j < end; j ++ {
+			contact, err := instance.FindContact(instances[j].NodeID)
+			if err != nil {
+				t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(i) + "'s contact list")
+				return
+			}
+
+			if !contact.NodeID.Equals(instances[j].NodeID) {
+				t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(i) + "'s contact list")
+			}
+		}
+	}
+
+
 
 	fmt.Println("..............Check Iterative find node function......")
 
@@ -293,6 +359,7 @@ func TestIterativeFindNode(t *testing.T) {
 	}
 
 	fmt.Println("..............Compare......")
+	fmt.Println("..............find result......" + instances[0].ContactsToString(resContacts))
 
 	//compare result
 	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContacts); i++ {
