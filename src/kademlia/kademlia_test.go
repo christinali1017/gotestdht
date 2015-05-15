@@ -5,9 +5,9 @@ import (
 	"net"
 	"strconv"
 	"testing"
-	"encoding/json"
-	"strings"
-	"io"
+	// "encoding/json"
+	// "strings"
+	// "io"
 	"sort"
 	"fmt"
 )
@@ -195,171 +195,195 @@ func TestFindValue(t *testing.T) {
 
 func TestIterativeFindNode(t *testing.T) {
 	fmt.Println(".........Begin test find node......")
-	instances := make([]Kademlia, 100)
-	instancesAddr := make([]string, 100)
+	numberOfNodes := 300
+	numberOfContactsPerNode := 30
+	instances := make([]Kademlia, numberOfNodes)
+	instancesAddr := make([]string, numberOfNodes)
+
 
 	//create 100 kademlia instance
 	fmt.Println("........Create instances......")
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfNodes; i++ {
 		port := i + 8000
 		address := "localhost:" + strconv.Itoa(port)
-		fmt.Println("port is " + address)
+		// fmt.Println("port is " + address)
 		instancesAddr[i] = address
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
 
 	}
 
 	fmt.Println(".........ping ......")
-	//1-9 ping 0, 11-19 ping 10.......91-99 ping 90
-	for i := 0; i < 10; i++ {
-		start := i * 10 
-		address := instancesAddr[start]
-		host, port, _ := StringToIpPort(address)
-		for j := start+1; j < start + 10; j ++ {
-			instances[j].DoPing(host, port)
-		}
-	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfNodes; i++ {
 		address := instancesAddr[i]
 		host, port, _ := StringToIpPort(address)
-		start := i - 5;
-		end := i + 5;
-		if start < 0 {
-			start += 100
+		start := i - numberOfContactsPerNode/2;
+		end := i + numberOfContactsPerNode/2;
+		if i >= numberOfContactsPerNode/2 && i <= numberOfNodes - numberOfContactsPerNode/2 {
+			for j := start; j < end; j ++ {
+				instances[j].DoPing(host, port)
+			}
+		} else {
+			if (i < numberOfContactsPerNode/2) {
+				for j := 0; j < numberOfContactsPerNode; j++ {
+					instances[j].DoPing(host, port)
+				}
+			} else if i > numberOfNodes - numberOfContactsPerNode/2 {
+				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
+					instances[j].DoPing(host, port)
+				}
+			}
 		}
-		if end > 100 {
-			end -= 100
-		}
-		for j := start; j < end; j ++ {
-			instances[j].DoPing(host, port)
-		}
+
 	}
 
 	fmt.Println("..............Check if contacts are stored......")
-	//check if contacts is updated
-	for i := 0; i < 10; i++ {
-		start := i * 10 
-		instance := instances[start]
-		for j := start+1; j < start + 10; j ++ {
-			contact, err := instance.FindContact(instances[j].NodeID)
-			if err != nil {
-				t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(start) + "'s contact list")
-				return
-			}
 
-			if !contact.NodeID.Equals(instances[j].NodeID) {
-				t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(start) + "'s contact list")
-			}
-		}
-	}
-
-	for i := 0; i < 10; i++ {
-		start := i * 10 
-		instance := instances[start]
-		for j := start+1; j < start + 10; j ++ {
-
-			contact, err := instances[j].FindContact(instance.NodeID)
-			if err != nil {
-				t.Error("Instance" + string(start) + "'s contact not found in Instance" + string(j) + "'s contact list")
-				return
-			}
-
-			if !contact.NodeID.Equals(instance.NodeID) {
-				t.Error("Instance" + string(start) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
-			}
-		}
-	}
-
-
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfNodes; i++ {
 		instance := instances[i]
-		start := i - 5;
-		end := i + 5;
-		if start < 0 {
-			start += 100
-		}
-		if end > 100 {
-			end -= 100
-		}
-		for j := start; j < end; j ++ {
-			contact, err := instances[j].FindContact(instance.NodeID)
-			if err != nil {
-				t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
-				return
-			}
+		start := i - numberOfContactsPerNode/2;
+		end := i + numberOfContactsPerNode/2;
+		if i >= numberOfContactsPerNode/2 && i <= numberOfNodes - numberOfContactsPerNode/2 {
+			for j := start; j < end; j ++ {
+				contact, err := instances[j].FindContact(instance.NodeID)
+				if err != nil {
+					t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+					return
+				}
 
-			if !contact.NodeID.Equals(instance.NodeID) {
-				t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+				if !contact.NodeID.Equals(instance.NodeID) {
+					t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+				}
+			}
+		}else {
+			if (i < numberOfContactsPerNode/2) {
+				for j := 0; j < numberOfContactsPerNode; j++ {
+					contact, err := instances[j].FindContact(instance.NodeID)
+					if err != nil {
+						t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+						return
+					}
+
+					if !contact.NodeID.Equals(instance.NodeID) {
+						t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+					}
+				}
+			} else if i > numberOfNodes- numberOfContactsPerNode/2 {
+				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
+					contact, err := instances[j].FindContact(instance.NodeID)
+					if err != nil {
+						t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+						return
+					}
+
+					if !contact.NodeID.Equals(instance.NodeID) {
+						t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+					}
+				}
 			}
 		}
+		
 	}
 
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfNodes; i++ {
 		instance := instances[i]
-		start := i - 5;
-		end := i + 5;
-		if start < 0 {
-			start += 100
-		}
-		if end > 100 {
-			end -= 100
-		}
-		for j := start; j < end; j ++ {
-			contact, err := instance.FindContact(instances[j].NodeID)
-			if err != nil {
-				t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(i) + "'s contact list")
-				return
-			}
+		start := i - numberOfContactsPerNode/2;
+		end := i + numberOfContactsPerNode/2;
 
-			if !contact.NodeID.Equals(instances[j].NodeID) {
-				t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(i) + "'s contact list")
+		if i >= numberOfContactsPerNode/2 && i <= numberOfNodes - numberOfContactsPerNode/2 {
+			for j := start; j < end; j ++ {
+				contact, err := instance.FindContact(instances[j].NodeID)
+				if err != nil {
+					t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(i) + "'s contact list")
+					return
+				}
+
+				if !contact.NodeID.Equals(instances[j].NodeID) {
+					t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(i) + "'s contact list")
+				}
+			}
+		}  else {
+			if (i < numberOfContactsPerNode/2) {
+				for j := 0; j < numberOfContactsPerNode; j++ {
+					contact, err := instance.FindContact(instances[j].NodeID)
+					if err != nil {
+						t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(i) + "'s contact list")
+						return
+					}
+
+					if !contact.NodeID.Equals(instances[j].NodeID) {
+						t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(i) + "'s contact list")
+					}
+				}
+			} else {
+				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
+					contact, err := instance.FindContact(instances[j].NodeID)
+					if err != nil {
+						t.Error("Instance" + string(j) + "'s contact not found in Instance" + string(i) + "'s contact list")
+						return
+					}
+
+					if !contact.NodeID.Equals(instances[j].NodeID) {
+						t.Error("Instance" + string(j) + "'s contact incorrectly stored in Instance" + string(i) + "'s contact list")
+					}
+				}
 			}
 		}
+		
 	}
-
-
 
 	fmt.Println("..............Check Iterative find node function......")
 
-	//check iterative find node 0 find 50
-	resNodes := instances[0].DoIterativeFindNode(instances[50].SelfContact.NodeID)
-	jsonContacts := json.NewDecoder(strings.NewReader(resNodes))
-
-	//get iterative find node result
-	fmt.Println("..............iterative find node result......")
-	resContacts := make([]Contact, 0)
-	for {
-		var contact Contact
-		if err := jsonContacts.Decode(&contact); err == io.EOF {
-			break
-		} else if err != nil {
-			t.Error(err.Error())
-		}
-		resContacts = append(resContacts, contact)
+	c, e := instances[2].FindContact(instances[4].NodeID)
+	if e != nil {
+		fmt.Println("instance 2 didn't have contact of instance 4")
+	} else {
+		fmt.Println("instance id" + c.NodeID.AsString())
 	}
+
+	//check iterative find node 0 find 50
+	testerNumber := 0
+	testSearchNumber := 50
+	resContacts := instances[testerNumber].IterativeFindNode(instances[testSearchNumber].SelfContact.NodeID)
+
+	fmt.Println("..............iterative find node result......")
+	fmt.Println(instances[testerNumber].ContactsToString(resContacts))
 
 	fmt.Println("..............theoretical......")
 
 	//calculate theoretical result
 	theoreticalRes := make([]ContactDistance, 0)
 	for i := 0; i < 100; i++ {
-		if len(theoreticalRes) <= MAX_BUCKET_SIZE {
-			theoreticalRes = append(theoreticalRes, instances[0].ContactToDistanceContact(instances[i].SelfContact, instances[50].SelfContact.NodeID))
+		instance := instances[i]
+		contact, err := instance.FindContact(instances[testSearchNumber].NodeID)
+			if err != nil || !contact.NodeID.Equals(instances[testSearchNumber].NodeID) {
+				continue
+		}
+		if len(theoreticalRes) < MAX_BUCKET_SIZE {
+			theoreticalRes = append(theoreticalRes, instances[testerNumber].ContactToDistanceContact(instances[i].SelfContact, instances[testSearchNumber].SelfContact.NodeID))
 			sort.Sort(ByDistance(theoreticalRes))
 		} else {
-			if theoreticalRes[MAX_BUCKET_SIZE-1].Distance.Compare(instances[i].SelfContact.NodeID.Xor(instances[50].SelfContact.NodeID)) == 1 {
-				theoreticalRes = theoreticalRes[0: MAX_BUCKET_SIZE]
-				theoreticalRes = append(theoreticalRes, instances[0].ContactToDistanceContact(instances[i].SelfContact, instances[50].SelfContact.NodeID))
+			if theoreticalRes[MAX_BUCKET_SIZE-1].Distance.Compare(instances[i].SelfContact.NodeID.Xor(instances[testSearchNumber].SelfContact.NodeID)) == 1 {
+				theoreticalRes = theoreticalRes[0: MAX_BUCKET_SIZE - 1]
+				theoreticalRes = append(theoreticalRes, instances[testerNumber].ContactToDistanceContact(instances[i].SelfContact, instances[testSearchNumber].SelfContact.NodeID))
 				sort.Sort(ByDistance(theoreticalRes))
 			}
 
 		}
 	}
+	fmt.Println("..............theoretical result length ......" + strconv.Itoa(len(theoreticalRes)))
+
+	//convert contactdistance to contact
+	theoreticalContact := make([]Contact, 0)
+	for i := 0; i < len(theoreticalRes); i++ {
+		theoreticalContact = append(theoreticalContact, theoreticalRes[i].SelfContact)
+	}
+    fmt.Println("..............theoretical result......")
+    fmt.Println(instances[0].ContactsToString(theoreticalContact))
 
 	fmt.Println("..............Compare......")
-	fmt.Println("..............find result......" + instances[0].ContactsToString(resContacts))
+	// fmt.Println("..............find result......" + instances[0].ContactsToString(resContacts))
 
 	//compare result
 	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContacts); i++ {

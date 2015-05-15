@@ -117,7 +117,7 @@ func NewKademlia(nodeid ID, laddr string) *Kademlia {
 			break
 		}
 	}
-	fmt.Println("new : " + host.String())
+	// fmt.Println("new : " + host.String())
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 	return k
 }
@@ -155,7 +155,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 	ping.MsgID = NewRandomID()
 	ping.Sender = k.SelfContact
 
-	fmt.Println("***IN DO ping: " + k.SelfContact.Host.String())
+	// fmt.Println("***IN DO ping: " + k.SelfContact.Host.String())
 
 	var pong PongMessage
 	// client, err := rpc.DialHTTP("tcp", string(host) + ":" + string(port))
@@ -326,7 +326,10 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	stopper := new(Stopper)
 
 	//initialize shortlist, seenmap
-	initializeContacts := k.FindClosestContacts(id, k.NodeID)[:3]
+	initializeContacts := k.FindClosestContacts(id, k.NodeID)
+	if len(initializeContacts) > ALPHA {
+		initializeContacts = initializeContacts[:3]
+	}
 
 	//result to return
 	resultShortlist := new(ResultShortlist)
@@ -334,56 +337,65 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	//global closest 
 	closest := k.SelfContact.NodeID.Xor(id)
 
-	checkImroved := new(CheckImproved)
+	//check if unqueried list is improved
+	checkImproved := new(CheckImproved)
+	checkImproved.value = true
+
+		//stop channel for time
+	stop := make(chan bool)
 
 	//initialize unqueriedlist and seenmap
-
-	fmt.Println(".........find closet contact........." + k.ContactsToString(initializeContacts))
-	for i := 0; i < 3 && i < len(initializeContacts); i++ {
+	for i := 0; i < ALPHA && i < len(initializeContacts); i++ {
 		contact := initializeContacts[i]
 		seenMap[contact.NodeID] = true
 		unqueriedList.list = append(unqueriedList.list, k.ContactToDistanceContact(contact, id))
 	}
 
-	//stop channel for time
-	stop := make(chan bool)
+	// fmt.Println(".........find closet contact.........")
+	// fmt.Println(k.ContactsToString(k.FindClosestContacts(id, k.NodeID)))
 
+	// fmt.Println(".........find closet contact.........")
+	// fmt.Println(k.ContactsToString(initializeContacts))
+
+	//add res to shortlist
 	go func() {
-		//add res to shortlist
 		for {
 			select {
 			case contacts := <-res:
+				tempContacts := make([]ContactDistance, 0)
 				for _, contact := range contacts {
 					if _, ok := seenMap[contact.NodeID]; ok == false {
-
-						unqueriedList.mutex.Lock()
-						unqueriedList.list = append(unqueriedList.list, k.ContactToDistanceContact(contact, id))
-						unqueriedList.mutex.Unlock()
-
+						tempContacts = append(tempContacts, k.ContactToDistanceContact(contact, id))
 						seenMap[contact.NodeID] = true
 					}
 				}
 
-				//sort shortlist
+				//append closest node and sort 
 				unqueriedList.mutex.Lock()
+				unqueriedList.list = append(unqueriedList.list, tempContacts...)
 				sort.Sort(ByDistance(unqueriedList.list))
 				unqueriedList.mutex.Unlock()
 
-				//check if short list is improved, first check if we need to check if the shortlist is improved
-
-				checkImroved.mutex.Lock()
-				ifImproved := checkImroved.value
-				checkImroved.mutex.Unlock()
+				//check if unqueried is improved,
+				checkImproved.mutex.RLock()
+				ifImproved := checkImproved.value
+				checkImproved.mutex.RUnlock()
 
 				if ifImproved == true {
-
 					unqueriedList.mutex.RLock()
 					unqueriedListLength := len(unqueriedList.list)
 					var firstElement ContactDistance
 					if unqueriedListLength > 0 {
 						firstElement = unqueriedList.list[0]
 					}
-					unqueriedList.mutex.Unlock()
+					unqueriedList.mutex.RUnlock()
+
+					//check if improved
+					if unqueriedListLength != 0 && firstElement.SelfContact.NodeID.Xor(id).Compare(closest) == 1 {
+						checkImproved.mutex.Lock()
+						checkImproved.value = false
+						checkImproved.mutex.Unlock()
+					}
 
 					if unqueriedListLength == 0 {
 						if len(res) == 0 {
@@ -396,41 +408,23 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 							continue;
 						}
 					}
-
-					if firstElement.SelfContact.NodeID.Xor(id).Compare(closest) == 1 {
-
-						checkImroved.mutex.Lock()
-						checkImroved.value = false
-						checkImroved.mutex.Unlock()
-
-					}
-					
 				}
-			case <-stop:
-				fmt.Println(".........for 4.........")
-				break
-
 			default:
 			}
 		}
 	}()
 
 	for {
-		// fmt.Println(".........for 1.........")
-			fmt.Println(".........for 2.........")
 			// check if unqueried list is empty and if there response in flight
 			unqueriedList.mutex.RLock()
 			if len(unqueriedList.list) == 0 {
-				fmt.Println(".........unqueriedList length is 0.........")
+				time.Sleep(TIME_INTERVAL)
 				if len(res) == 0 {
-					fmt.Println(".........res length is 0.........")
 					stop <- true
 					break
 				}
 			}
 			unqueriedList.mutex.RUnlock()
-
-			fmt.Println(".........begin sending query.........")
 
 			// alpha query
 			for i := 0; i < ALPHA; i++ {
@@ -439,6 +433,7 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				if(len(unqueriedList.list) ==0){
 					break;
 				}
+				front := unqueriedList.list[0]
 				unqueriedList.mutex.RUnlock()
 
 				//check if end
@@ -449,13 +444,8 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				stopper.stopMutex.RUnlock()
 
 				//get first contact from unqueriedList
-				unqueriedList.mutex.RLock()
-				front := unqueriedList.list[0]
 				test := make([]Contact, 0)
 				test = append(test, front.SelfContact)
-				fmt.Println(".........node begin sending query........." + k.ContactsToString(test))
-				unqueriedList.mutex.RUnlock()
-
 				//remove this contact
 				unqueriedList.mutex.Lock()
 				unqueriedList.list = unqueriedList.list[1:]
@@ -468,8 +458,10 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 					err, response := k.rpcQuery(contact, id, res)
 
 					if err == nil {
+
 						// add this active node to shortlist
 						shortlist <- contact
+
 
 						if len(shortlist) >= MAX_BUCKET_SIZE {
 							stopper.stopMutex.Lock()
@@ -479,12 +471,11 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 							return 
 						}
 
-						//if is improved add the response to the res 
-						checkImroved.mutex.RLock()
-						if checkImroved.value == true {
+						checkImproved.mutex.RLock()
+						if checkImproved.value == true {
 							res <- response
 						}
-						checkImroved.mutex.RUnlock()
+						checkImproved.mutex.RUnlock()
 					}
 				}()
 			}
@@ -492,8 +483,7 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 
 		case <-time.After(TIME_INTERVAL):
 		case <-stop:
-			fmt.Println(".........for 3.........")
-			if len(res) == 0 {
+			if len(shortlist) == MAX_BUCKET_SIZE || len(res) == 0 {
 				resultShortlist.mutex.Lock()
 				resultShortlist.list = make([]Contact, len(shortlist))
 				channelLength := len(shortlist)
@@ -509,9 +499,8 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	}
 
 	//make sure that res is flushed to the shortlist
-
 	for {
-		if len(res) == 0 {
+		if len(shortlist) == MAX_BUCKET_SIZE || len(res) == 0 {
 			break
 		}
 	}
@@ -627,7 +616,8 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 				sort.Sort(ByDistance(shortlist))
 
 				//check if short list is improved
-				for i := 0; i < len(shortlist) && i < MAX_BUCKET_SIZE; i++ {
+				// for i := 0; i < len(shortlist) && i < MAX_BUCKET_SIZE; i++ {
+					i := 0
 					if !oldVersion[i].SelfContact.NodeID.Equals(shortlist[i].SelfContact.NodeID) {
 						isUpdated = true
 						if len(shortlist) <= 20 {
@@ -635,7 +625,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 						}
 						oldVersion = shortlist[:MAX_BUCKET_SIZE+1]
 					}
-				}
+				
 				if !isUpdated {
 					stopper.stopMutex.Lock()
 					stopper.value = 2
@@ -784,7 +774,7 @@ func (k *Kademlia) iterFindValuQeuery(contact Contact, searchKey ID, contactChan
 
 func (k *Kademlia) UpdateContact(contact Contact) {
 	//Find bucket
-	fmt.Println("Begin update")
+	// fmt.Println("Begin update")
 
 	// fmt.Println("*********" + contact.Host.String())
 	bucket := k.FindBucket(contact.NodeID)
@@ -838,7 +828,7 @@ func (k *Kademlia) UpdateContact(contact Contact) {
 		}
 
 	}
-	fmt.Println("Update contact succeed, nodeid is : " + contact.NodeID.AsString())
+	// fmt.Println("Update contact succeed, nodeid is : " + contact.NodeID.AsString())
 
 }
 
@@ -934,9 +924,12 @@ func (a ByDistance) Less(i, j int) bool { return a[i].Distance.Less(a[j].Distanc
 func (k *Kademlia) ContactsToString(contacts []Contact) string {
 	var res string
 	for _, contact := range contacts {
-		res = res + "{NodeID: " + contact.NodeID.AsString() + ", Host: " + contact.Host.String() + ", Port: " + strconv.Itoa(int(contact.Port)) + "}"
+		res = res + "{\"NodeID\": \"" + contact.NodeID.AsString() + "\", \"Host\": \"" + contact.Host.String() + "\", \"Port\": \"" + strconv.Itoa(int(contact.Port)) + "\"},"
 	}
-	return res[:len(res)]
+	if len(res) == 0 {
+		return res
+	}
+	return res[:len(res)-1]
 }
 
 func (k *Kademlia) PingWithOutUpdate(host net.IP, port uint16) string {
@@ -945,7 +938,7 @@ func (k *Kademlia) PingWithOutUpdate(host net.IP, port uint16) string {
 	ping.MsgID = NewRandomID()
 	ping.Sender = k.SelfContact
 
-	fmt.Println("***IN DO ping: " + k.SelfContact.Host.String())
+	// fmt.Println("***IN DO ping: " + k.SelfContact.Host.String())
 
 	var pong PongMessage
 	// client, err := rpc.DialHTTP("tcp", string(host) + ":" + string(port))

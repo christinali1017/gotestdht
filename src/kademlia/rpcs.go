@@ -6,7 +6,7 @@ package kademlia
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 	"net"
 )
 
@@ -40,10 +40,10 @@ func (kc *KademliaCore) Ping(ping PingMessage, pong *PongMessage) error {
 
 	// Specify the sender
 	pong.Sender = kc.kademlia.SelfContact
-	fmt.Println("***IN  ping, sender: " + ping.Sender.Host.String())
-	fmt.Println("***IN  ping, self: " + pong.Sender.Host.String())
+	// fmt.Println("***IN  ping, sender: " + ping.Sender.Host.String())
+	// fmt.Println("***IN  ping, self: " + pong.Sender.Host.String())
 
-	fmt.Println("Received ping!")
+	// fmt.Println("Received ping!")
 	// Update contact, etc
 	kc.kademlia.UpdateContact(ping.Sender)
 
@@ -66,19 +66,19 @@ type StoreResult struct {
 }
 
 func (kc *KademliaCore) Store(req StoreRequest, res *StoreResult) error {
-	fmt.Println("Begin store!")
+	// fmt.Println("Begin store!")
 	k := (*kc).kademlia
 	// store
 	k.storeMutex.Lock()
 	k.storeMap[req.Key] = req.Value
-	fmt.Println("store ")
-	fmt.Println(k.storeMap[req.Key])
+	// fmt.Println("store ")
+	// fmt.Println(k.storeMap[req.Key])
 	k.storeMutex.Unlock()
 
 	//update contact
 	k.UpdateContact(req.Sender)
 	res.Err = nil
-	fmt.Println("Finish store " + string(req.Value) + "on " + k.NodeID.AsString())
+	// fmt.Println("Finish store " + string(req.Value) + "on " + k.NodeID.AsString())
 	return nil
 }
 
