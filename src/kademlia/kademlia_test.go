@@ -206,10 +206,11 @@ func TestIterativeFindNode(t *testing.T) {
 	for i := 0; i < numberOfNodes; i++ {
 		port := i + 8000
 		address := "localhost:" + strconv.Itoa(port)
+
 		// fmt.Println("port is " + address)
 		instancesAddr[i] = address
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
-
+		//instances[i] = *NewKademlia(CreateIdForTest(strconv.Itoa(i)), address)
 	}
 
 	fmt.Println(".........ping ......")
@@ -348,13 +349,16 @@ func TestIterativeFindNode(t *testing.T) {
 	resContacts := instances[testerNumber].IterativeFindNode(instances[testSearchNumber].SelfContact.NodeID)
 
 	fmt.Println("..............iterative find node result......")
-	fmt.Println(instances[testerNumber].ContactsToString(resContacts))
+	// fmt.Println(instances[testerNumber].ContactsToString(resContacts))
 
 	fmt.Println("..............theoretical......")
 
 	//calculate theoretical result
 	theoreticalRes := make([]ContactDistance, 0)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfNodes; i++ {
+		if i == testSearchNumber {
+			continue
+		}
 		instance := instances[i]
 		contact, err := instance.FindContact(instances[testSearchNumber].NodeID)
 			if err != nil || !contact.NodeID.Equals(instances[testSearchNumber].NodeID) {

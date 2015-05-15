@@ -30,6 +30,7 @@ const (
 	MAX_BUCKET_SIZE = 20
 	ALPHA           = 3
 	TIME_INTERVAL time.Duration   = 300 * time.Millisecond
+	RERPONSE_LIMIT time.Duration  = 600 * time.Millisecond
 )
 
 // Kademlia type. You can put whatever state you need in this.
@@ -342,7 +343,7 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	checkImproved.value = true
 
 		//stop channel for time
-	stop := make(chan bool)
+	stop := make(chan bool, 100)
 
 	//initialize unqueriedlist and seenmap
 	for i := 0; i < ALPHA && i < len(initializeContacts); i++ {
@@ -417,32 +418,44 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 	for {
 			// check if unqueried list is empty and if there response in flight
 			unqueriedList.mutex.RLock()
-			if len(unqueriedList.list) == 0 {
+			tempLength := len(unqueriedList.list)
+			unqueriedList.mutex.RUnlock()
+
+			if tempLength == 0 {
 				time.Sleep(TIME_INTERVAL)
-				if len(res) == 0 {
+				unqueriedList.mutex.RLock()
+				tempLength = len(unqueriedList.list)
+				unqueriedList.mutex.RUnlock()
+
+				if len(res) == 0 && tempLength == 0 {
 					stop <- true
 					break
 				}
 			}
-			unqueriedList.mutex.RUnlock()
 
 			// alpha query
 			for i := 0; i < ALPHA; i++ {
 				//check if unqueried list is empty
 				unqueriedList.mutex.RLock()
-				if(len(unqueriedList.list) ==0){
+				unqueriedListLength := len(unqueriedList.list)
+				unqueriedList.mutex.RUnlock()
+				if unqueriedListLength ==0 {
 					break;
 				}
+
+				unqueriedList.mutex.RLock()
 				front := unqueriedList.list[0]
 				unqueriedList.mutex.RUnlock()
-
+				
 				//check if end
 				stopper.stopMutex.RLock()
-				if stopper.value != 0 {
-					break
-				}
+				stopperValue := stopper.value
 				stopper.stopMutex.RUnlock()
 
+				if stopperValue != 0 {
+					break
+				}
+				
 				//get first contact from unqueriedList
 				test := make([]Contact, 0)
 				test = append(test, front.SelfContact)
@@ -462,7 +475,6 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 						// add this active node to shortlist
 						shortlist <- contact
 
-
 						if len(shortlist) >= MAX_BUCKET_SIZE {
 							stopper.stopMutex.Lock()
 							stopper.value = 1
@@ -471,6 +483,7 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 							return 
 						}
 
+						//if is improved add the response to the res 
 						checkImproved.mutex.RLock()
 						if checkImproved.value == true {
 							res <- response
@@ -498,7 +511,9 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 		}
 	}
 
+
 	//make sure that res is flushed to the shortlist
+
 	for {
 		if len(shortlist) == MAX_BUCKET_SIZE || len(res) == 0 {
 			break
