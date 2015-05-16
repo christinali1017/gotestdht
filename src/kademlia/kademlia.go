@@ -29,8 +29,8 @@ const (
 	TOTAL_BUCKETS   = 8 * IDBytes
 	MAX_BUCKET_SIZE = 20
 	ALPHA           = 3
-	TIME_INTERVAL time.Duration   = 300 * time.Millisecond
-	RERPONSE_LIMIT time.Duration  = 600 * time.Millisecond
+	TIME_INTERVAL time.Duration   = 500 * time.Millisecond
+	RERPONSE_LIMIT time.Duration  = 1000 * time.Millisecond
 )
 
 // Kademlia type. You can put whatever state you need in this.
@@ -375,6 +375,8 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 				unqueriedList.mutex.Lock()
 				unqueriedList.list = append(unqueriedList.list, tempContacts...)
 				sort.Sort(ByDistance(unqueriedList.list))
+				// fmt.Println("unqueried list")
+				// fmt.Println(k.FindClosestContactsBySort(unqueriedList.list))
 				unqueriedList.mutex.Unlock()
 
 				//check if unqueried is improved,
