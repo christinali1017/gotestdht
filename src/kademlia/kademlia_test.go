@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 	// "encoding/json"
-	"strings"
+	//"strings"
 	// "io"
 	"fmt"
 	"sort"
@@ -197,19 +197,22 @@ func TestIterativeFindNode(t *testing.T) {
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
+	startPort := 8000
+
+	testerNumber := int(rand.Intn(numberOfNodes))
+	testSearchNumber := int(rand.Intn(numberOfNodes))
+	searchKey := instances[testSearchNumber].NodeID
 
 	//create 100 kademlia instance
-	fmt.Println("........Create instances......")
 	for i := 0; i < numberOfNodes; i++ {
-		port := i + 8000
+		port := i + startPort
 		address := "localhost:" + strconv.Itoa(port)
-		fmt.Println("port is " + address)
+
+		// fmt.Println("port is " + address)
 		instancesAddr[i] = address
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
 		//instances[i] = *NewKademlia(CreateIdForTest(strconv.Itoa(i)), address)
 	}
-
-	fmt.Println(".........ping ......")
 
 	for i := 0; i < numberOfNodes; i++ {
 		address := instancesAddr[i]
@@ -233,8 +236,6 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 
 	}
-
-	fmt.Println("..............Check if contacts are stored......")
 
 	for i := 0; i < numberOfNodes; i++ {
 		instance := instances[i]
@@ -329,71 +330,88 @@ func TestIterativeFindNode(t *testing.T) {
 
 	}
 
-	fmt.Println("..............Check Iterative find node function......")
-
 	//check iterative find node 0 find 50
-	testerNumber := 0
-	testSearchNumber := 50
-	resContacts := instances[testerNumber].IterativeFindNode(instances[testSearchNumber].SelfContact.NodeID)
 
-	fmt.Println("..............iterative find node result......")
-	fmt.Println(instances[testerNumber].ContactsToString(resContacts))
-
-	fmt.Println("..............theoretical......")
-
-	//calculate theoretical result
 	theoreticalRes := make([]ContactDistance, 0)
-	for i := 0; i < numberOfNodes; i++ {
-		if i == testSearchNumber {
-			continue
-		}
-		instance := instances[i]
-		contact, err := instance.FindContact(instances[testSearchNumber].NodeID)
-		if err != nil || !contact.NodeID.Equals(instances[testSearchNumber].NodeID) {
-			continue
-		}
-		if len(theoreticalRes) < MAX_BUCKET_SIZE {
-			theoreticalRes = append(theoreticalRes, instances[testerNumber].ContactToDistanceContact(instances[i].SelfContact, instances[testSearchNumber].SelfContact.NodeID))
-			sort.Sort(ByDistance(theoreticalRes))
-		} else {
-			if theoreticalRes[MAX_BUCKET_SIZE-1].Distance.Compare(instances[i].SelfContact.NodeID.Xor(instances[testSearchNumber].SelfContact.NodeID)) == 1 {
-				theoreticalRes = theoreticalRes[0 : MAX_BUCKET_SIZE-1]
-				theoreticalRes = append(theoreticalRes, instances[testerNumber].ContactToDistanceContact(instances[i].SelfContact, instances[testSearchNumber].SelfContact.NodeID))
-				sort.Sort(ByDistance(theoreticalRes))
+	initializeContacts := instances[testerNumber].FindClosestContacts(searchKey, instances[testerNumber].NodeID)
+	if len(initializeContacts) > ALPHA {
+		initializeContacts = initializeContacts[:3]
+	}
+	unqueriedList := make([]ContactDistance, 0)
+	seenMap := make(map[ID]bool)
+	improved := true
+
+	for i := 0; i < ALPHA && i < len(initializeContacts); i++ {
+		contact := initializeContacts[i]
+		seenMap[contact.NodeID] = true
+		unqueriedList = append(unqueriedList, instances[testerNumber].ContactToDistanceContact(contact, searchKey))
+	}
+
+	if len(unqueriedList) > 0 {
+		closest := unqueriedList[0].SelfContact.NodeID.Xor(searchKey)
+		for len(unqueriedList) > 0 && len(theoreticalRes) <= MAX_BUCKET_SIZE {
+			current := make([]ContactDistance, 0)
+			if len(unqueriedList) < 3 {
+				current = unqueriedList[0:]
+				unqueriedList = make([]ContactDistance, 0)
+			} else {
+				current = unqueriedList[0:3]
+				unqueriedList = unqueriedList[3:]
 			}
 
+			for i := 0; i < ALPHA && i < len(current); i++ {
+				front := current[i]
+				contact := front.SelfContact
+				tempInstanceIndex := int(contact.Port) - startPort
+				tempContacts := instances[tempInstanceIndex].FindClosestContacts(searchKey, contact.NodeID)
+
+				if len(tempContacts) > 0 {
+					theoreticalRes = append(theoreticalRes, instances[testerNumber].ContactToDistanceContact(contact, searchKey))
+				}
+
+				if improved {
+					for _, c := range tempContacts {
+						if _, ok := seenMap[c.NodeID]; ok == false {
+							unqueriedList = append(unqueriedList, instances[testerNumber].ContactToDistanceContact(c, searchKey))
+							seenMap[c.NodeID] = true
+						}
+					}
+					sort.Sort(ByDistance(unqueriedList))
+					if len(unqueriedList) != 0 && unqueriedList[0].SelfContact.NodeID.Xor(searchKey).Compare(closest) == 1 {
+						improved = false
+					} else if len(unqueriedList) != 0 && unqueriedList[0].SelfContact.NodeID.Xor(searchKey).Compare(closest) != 1 {
+						closest = unqueriedList[0].SelfContact.NodeID.Xor(searchKey)
+					}
+				}
+			}
+
+			// time.Sleep(500 * time.Millisecond)
+		}
+		sort.Sort(ByDistance(theoreticalRes))
+
+		//convert contactdistance to contact
+		theoreticalContact := make([]Contact, 0)
+		for i := 0; i < len(theoreticalRes); i++ {
+			theoreticalContact = append(theoreticalContact, theoreticalRes[i].SelfContact)
 		}
 	}
-	fmt.Println("..............theoretical result length ......" + strconv.Itoa(len(theoreticalRes)))
 
-	//convert contactdistance to contact
-	theoreticalContact := make([]Contact, 0)
-	for i := 0; i < len(theoreticalRes); i++ {
-		theoreticalContact = append(theoreticalContact, theoreticalRes[i].SelfContact)
+	resContacts := instances[testerNumber].IterativeFindNode(instances[testSearchNumber].SelfContact.NodeID)
+	resContactDistance := make([]ContactDistance, 0)
+	for _, c := range resContacts {
+		resContactDistance = append(resContactDistance, instances[testerNumber].ContactToDistanceContact(c, searchKey))
 	}
-	fmt.Println("..............theoretical result......")
-	fmt.Println(instances[0].ContactsToString(theoreticalContact))
-
-	fmt.Println("..............Compare......")
-	fmt.Println("..............find result......" + instances[0].ContactsToString(resContacts))
+	sort.Sort(ByDistance(resContactDistance))
 
 	//compare result, sequence is not fixed, because some nodes might have same distance
-	// for i := 0; i < MAX_BUCKET_SIZE && i < len(resContacts); i++ {
-	// 	if !theoreticalRes[i].SelfContact.NodeID.Equals(resContacts[i].NodeID) {
-	// 		t.Error("TestIterativeFindNode error, the nodes return are not the closet ones")
-	// 	}
-	// }
-	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContacts); i++ {
-		existed := false
-		for j := 0; j < MAX_BUCKET_SIZE && j < len(theoreticalRes); j++ {
-			if theoreticalRes[j].SelfContact.NodeID.Equals(resContacts[i].NodeID) {
-				existed = true
-			}
-		}
-		if existed == false {
+
+	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContactDistance) && i < len(theoreticalRes); i++ {
+		if !theoreticalRes[i].SelfContact.NodeID.Equals(resContactDistance[i].SelfContact.NodeID) {
 			// t.Error("TestIterativeFindNode error, the nodes return are not the closet ones")
 		}
 	}
+
+	fmt.Println("Finish iterative find node")
 
 	return
 }
@@ -418,7 +436,6 @@ func TestIterativeFindValue(t *testing.T) {
 	}
 
 	fmt.Println(".........ping ......")
-
 	for i := 0; i < numberOfNodes; i++ {
 		address := instancesAddr[i]
 		host, port, _ := StringToIpPort(address)
@@ -476,8 +493,8 @@ func TestIterativeFindValue(t *testing.T) {
 
 	if true {
 		t.Error("Node in Instance2 are stored incorrectly")
-		t.Error(responsevalue)
-		t.Error(targetIDStr)
+		//t.Error(responsevalue)
+		//t.Error(targetIDStr)
 
 	}
 	return

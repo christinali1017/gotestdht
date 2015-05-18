@@ -262,6 +262,41 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	return "ok, result is: " + res
 }
 
+// func (k *Kademlia) DoFindNodeHelper(contact *Contact, searchKey ID) []Contact {
+// 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+
+// 	// client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
+// 	client, err := rpc.DialHTTPPath("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(contact.Port)))
+
+// 	if err != nil {
+
+// 		return nil
+// 	}
+
+// 	//create find node request and result
+// 	findNodeRequest := new(FindNodeRequest)
+// 	findNodeRequest.Sender = k.SelfContact
+// 	findNodeRequest.MsgID = NewRandomID()
+// 	findNodeRequest.NodeID = searchKey
+
+// 	findNodeRes := new(FindNodeResult)
+
+// 	//find node
+// 	err = client.Call("KademliaCore.FindNode", findNodeRequest, findNodeRes)
+// 	if err != nil {
+// 		return nil
+// 	}
+
+// 	//update contact
+// 	for _, contact := range findNodeRes.Nodes {
+// 		k.UpdateContact(contact)
+// 	}
+
+// 	return findNodeRes.Nodes
+// }
+
+
+
 func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	// client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
@@ -414,6 +449,8 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 						checkImproved.mutex.Lock()
 						checkImproved.value = false
 						checkImproved.mutex.Unlock()
+					} else if unqueriedListLength != 0 && firstElement.SelfContact.NodeID.Xor(id).Compare(closest) != 1{
+						closest = firstElement.SelfContact.NodeID.Xor(id)
 					}
 
 					if unqueriedListLength == 0 {
@@ -993,6 +1030,17 @@ func (k *Kademlia) ContactsToString(contacts []Contact) string {
 	var res string
 	for _, contact := range contacts {
 		res = res + "{\"NodeID\": \"" + contact.NodeID.AsString() + "\", \"Host\": \"" + contact.Host.String() + "\", \"Port\": \"" + strconv.Itoa(int(contact.Port)) + "\"},"
+	}
+	if len(res) == 0 {
+		return res
+	}
+	return res[:len(res)-1]
+}
+
+func (k *Kademlia) ContactDistanceToString(contacts []ContactDistance) string {
+	var res string
+	for _, contact := range contacts {
+		res = res + "{\"NodeID\": \"" + contact.SelfContact.NodeID.AsString() + "\", \"Host\": \"" + contact.SelfContact.Host.String() + "\", \"Port\": \"" + strconv.Itoa(int(contact.SelfContact.Port)) + "\"},"
 	}
 	if len(res) == 0 {
 		return res
