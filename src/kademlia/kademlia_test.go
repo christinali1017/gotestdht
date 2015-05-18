@@ -10,7 +10,7 @@ import (
 	// "io"
 	"sort"
 	"fmt"
-	"time"
+	// "time"
 )
 
 func CreateIdForTest(id string) (ret ID) {
@@ -202,6 +202,10 @@ func TestIterativeFindNode(t *testing.T) {
 	instancesAddr := make([]string, numberOfNodes)
 	startPort := 8000
 
+	testerNumber := int(rand.Intn(numberOfNodes))
+	testSearchNumber := int(rand.Intn(numberOfNodes))
+	searchKey := instances[testSearchNumber].NodeID
+
 
 	//create 100 kademlia instance
 	for i := 0; i < numberOfNodes; i++ {
@@ -334,9 +338,7 @@ func TestIterativeFindNode(t *testing.T) {
 	}
 
 	//check iterative find node 0 find 50
-	testerNumber := 0
-	testSearchNumber := 50
-	searchKey := instances[testSearchNumber].NodeID
+
 
 	theoreticalRes := make([]ContactDistance, 0)
 	initializeContacts := instances[testerNumber].FindClosestContacts(searchKey, instances[testerNumber].NodeID)
@@ -391,7 +393,7 @@ func TestIterativeFindNode(t *testing.T) {
 				}
 			}
 
-			time.Sleep(500 * time.Millisecond)
+			// time.Sleep(500 * time.Millisecond)
 		}
 		sort.Sort(ByDistance(theoreticalRes))
 
@@ -419,7 +421,7 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 	}
 
-
+	fmt.Println("Finish iterative find node")
 
 	return
 }
