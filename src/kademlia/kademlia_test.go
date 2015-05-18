@@ -193,7 +193,7 @@ func TestFindValue(t *testing.T) {
 
 func TestIterativeFindNode(t *testing.T) {
 	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 150
+	numberOfNodes := 110
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
