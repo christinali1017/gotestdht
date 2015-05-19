@@ -194,6 +194,7 @@ func TestFindValue(t *testing.T) {
 func TestIterativeFindNode(t *testing.T) {
 	fmt.Println(".........Begin test find node......")
 	numberOfNodes := 300
+
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
@@ -202,6 +203,8 @@ func TestIterativeFindNode(t *testing.T) {
 	testerNumber := int(rand.Intn(numberOfNodes))
 	testSearchNumber := int(rand.Intn(numberOfNodes))
 	searchKey := instances[testSearchNumber].NodeID
+
+	fmt.Println("Create instances.........")
 
 	//create 100 kademlia instance
 	for i := 0; i < numberOfNodes; i++ {
@@ -213,6 +216,8 @@ func TestIterativeFindNode(t *testing.T) {
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
 		//instances[i] = *NewKademlia(CreateIdForTest(strconv.Itoa(i)), address)
 	}
+
+	fmt.Println("Ping .........")
 
 	for i := 0; i < numberOfNodes; i++ {
 		address := instancesAddr[i]
@@ -237,6 +242,8 @@ func TestIterativeFindNode(t *testing.T) {
 
 	}
 
+	fmt.Println("Check contacts.........")
+
 	for i := 0; i < numberOfNodes; i++ {
 		instance := instances[i]
 		start := i - numberOfContactsPerNode/2
@@ -245,12 +252,12 @@ func TestIterativeFindNode(t *testing.T) {
 			for j := start; j < end; j++ {
 				contact, err := instances[j].FindContact(instance.NodeID)
 				if err != nil {
-					t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+					t.Error("Instance " + string(i) + "'s contact not found in Instance " + string(j) + "'s contact list")
 					return
 				}
 
 				if !contact.NodeID.Equals(instance.NodeID) {
-					t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+					t.Error("Instance " + string(i) + "'s contact incorrectly stored in Instance " + string(j) + "'s contact list")
 				}
 			}
 		} else {
@@ -258,24 +265,24 @@ func TestIterativeFindNode(t *testing.T) {
 				for j := 0; j < numberOfContactsPerNode; j++ {
 					contact, err := instances[j].FindContact(instance.NodeID)
 					if err != nil {
-						t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+						t.Error("Instance " + string(i) + "'s contact not found in Instance " + string(j) + "'s contact list")
 						return
 					}
 
 					if !contact.NodeID.Equals(instance.NodeID) {
-						t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+						t.Error("Instance " + string(i) + "'s contact incorrectly stored in Instance " + string(j) + "'s contact list")
 					}
 				}
 			} else if i > numberOfNodes-numberOfContactsPerNode/2 {
 				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
 					contact, err := instances[j].FindContact(instance.NodeID)
 					if err != nil {
-						t.Error("Instance" + string(i) + "'s contact not found in Instance" + string(j) + "'s contact list")
+						t.Error("Instance " + string(i) + "'s contact not found in Instance " + string(j) + "'s contact list")
 						return
 					}
 
 					if !contact.NodeID.Equals(instance.NodeID) {
-						t.Error("Instance" + string(i) + "'s contact incorrectly stored in Instance" + string(j) + "'s contact list")
+						t.Error("Instance " + string(i) + "'s contact incorrectly stored in Instance " + string(j) + "'s contact list")
 					}
 				}
 			}
@@ -331,6 +338,8 @@ func TestIterativeFindNode(t *testing.T) {
 	}
 
 	//check iterative find node 0 find 50
+
+	fmt.Println("Get theoretical result .........")
 
 	theoreticalRes := make([]ContactDistance, 0)
 	initializeContacts := instances[testerNumber].FindClosestContacts(searchKey, instances[testerNumber].NodeID)
@@ -396,6 +405,8 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 	}
 
+	fmt.Println("Get iterative findnode result.........")
+
 	resContacts := instances[testerNumber].IterativeFindNode(instances[testSearchNumber].SelfContact.NodeID)
 	resContactDistance := make([]ContactDistance, 0)
 	for _, c := range resContacts {
@@ -404,6 +415,7 @@ func TestIterativeFindNode(t *testing.T) {
 	sort.Sort(ByDistance(resContactDistance))
 
 	//compare result, sequence is not fixed, because some nodes might have same distance
+	fmt.Println("Compare.........")
 
 	for i := 0; i < MAX_BUCKET_SIZE && i < len(resContactDistance) && i < len(theoreticalRes); i++ {
 		if !theoreticalRes[i].SelfContact.NodeID.Equals(resContactDistance[i].SelfContact.NodeID) {
@@ -419,7 +431,7 @@ func TestIterativeFindNode(t *testing.T) {
 func TestIterativeFindValue(t *testing.T) {
 	fmt.Println("..............Find Value......")
 	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 150
+	numberOfNodes := 90
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
@@ -429,7 +441,7 @@ func TestIterativeFindValue(t *testing.T) {
 	for i := 0; i < numberOfNodes; i++ {
 		port := i + 9000
 		address := "localhost:" + strconv.Itoa(port)
-		fmt.Println("port is " + address)
+		// fmt.Println("port is " + address)
 		instancesAddr[i] = address
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
 	}
@@ -482,7 +494,6 @@ func TestIterativeFindValue(t *testing.T) {
 		t.Error("Iterative Find Value Error, return value is not correct")
 		t.Error("return value: " + responsevalue)
 		t.Error("expect: " + theoreticalvalue)
-
 	}
 	return
 }
