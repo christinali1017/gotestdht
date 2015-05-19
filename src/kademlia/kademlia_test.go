@@ -193,7 +193,7 @@ func TestFindValue(t *testing.T) {
 
 func TestIterativeFindNode(t *testing.T) {
 	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 120
+	numberOfNodes := 300
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
@@ -419,7 +419,7 @@ func TestIterativeFindNode(t *testing.T) {
 func TestIterativeFindValue(t *testing.T) {
 	fmt.Println("..............Find Value......")
 	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 120
+	numberOfNodes := 150
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
 	instancesAddr := make([]string, numberOfNodes)
@@ -432,7 +432,6 @@ func TestIterativeFindValue(t *testing.T) {
 		fmt.Println("port is " + address)
 		instancesAddr[i] = address
 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
-		//instances[i] = *NewKademlia(CreateIdForTest(strconv.Itoa(i)), address)
 	}
 
 	fmt.Println(".........ping ......")
@@ -459,80 +458,31 @@ func TestIterativeFindValue(t *testing.T) {
 		fmt.Println(".........In ping ......")
 	}
 
-	// fmt.Println("..............Begin Store......")
-	// for i := 0; i+1 < numberOfNodes; i++ {
-	// 	instance1 := instances[i]
-	// 	instance1ID := instance1.SelfContact.NodeID
-	// 	instance2 := instances[i+1]
-	// 	contact := instance2.SelfContact
-	// 	svalue := strconv.Itoa(int(rand.Intn(256)))
-	// 	value := []byte(svalue)
-	// 	instance1.DoStore(&contact, instance1ID, value)
-	// }
-
-	// fmt.Println("..............Store to nodes near by......")
-	// randint2 := rand.Intn(100)
-	// instance2 := instances[randint2]
-	// // instance2ID := instance2.SelfContact.NodeID
-	// randint3 := rand.Intn(100)
-	// instance3 := instances[randint3]
-	// instance3Contact := instance3.SelfContact
-	// instance3ID := instance3Contact.NodeID
-	// svalue := strconv.Itoa(int(rand.Intn(256)))
-	// value := []byte(svalue)
-	// instance2.DoIterativeStore(instance3ID, value)
-	// fmt.Println("..............Check Iterative find node function......")
-	// responsevalue := instance2.DoIterativeFindValue(instance3ID)
-	// responseNodeIDs := strings.SplitAfter(responsevalue, "ID:")
-	// targetIDStr := responseNodeIDs[0]
-
-	//targetID := ID([]byte(strconv.Atoi(targetIDStr)))
-	// responsenode := instance2.DoFindNode(&instance3Contact, instance3ID)
-
 	fmt.Println("..............Store to node......")
-
-	if true {
-		t.Error("Node in Instance2 are stored incorrectly")
-		//t.Error(responsevalue)
-		//t.Error(targetIDStr)
+	randint1 := rand.Intn(150)
+	randint1 = 0
+	instance1 := instances[randint1]
+	randint2 := rand.Intn(150)
+	instance2 := instances[randint2]
+	randint3 := rand.Intn(150)
+	randint3 = 60
+	instance3 := instances[randint3]
+	instance3Contact := instance3.SelfContact
+	instance3ID := instance3Contact.NodeID
+	svalue := strconv.Itoa(int(rand.Intn(256)))
+	value := []byte(svalue)
+	instance2.DoStore(&instance3Contact, instance3ID, value)
+	responsevalue := instance1.DoIterativeFindValue(instance3ID)
+	theoreticalvalue := " ID: " + instance3ID.AsString() + " Value: " + string(value[:])
+	if responsevalue == "ERR: Value not found" {
+		fmt.Println("Not Found: " + " Excuter: " + strconv.Itoa(randint1) + " Key: " + strconv.Itoa(randint3))
+		return
+	}
+	if responsevalue != theoreticalvalue {
+		t.Error("Iterative Find Value Error, return value is not correct")
+		t.Error("return value: " + responsevalue)
+		t.Error("expect: " + theoreticalvalue)
 
 	}
 	return
 }
-
-// func TestIterativeFindValue(t *testing.T) {
-// 	fmt.Println("..............Find Value......")
-// 	kademliaInstanceList := make([]Kademlia, 0)
-// 	kademliaInstanceList = append(kademliaInstanceList, *NewKademlia(CreateIdForTest(string(0)), "localhost:200"+strconv.Itoa(0)))
-// 	for i := 1; i+1 < 4*MAX_BUCKET_SIZE; i++ {
-// 		kademliaInstanceList = append(kademliaInstanceList, *NewKademlia(CreateIdForTest(string(i)), "localhost:200"+strconv.Itoa(i)))
-// 		host2, port2, _ := StringToIpPort("localhost:200" + strconv.Itoa(i))
-// 		kademliaInstanceList[i-1].DoPing(host2, port2)
-// 		svalue := strconv.Itoa(int(rand.Intn(256)))
-// 		value := []byte(svalue)
-// 		instance1ID := kademliaInstanceList[i-1].SelfContact.NodeID
-// 		contact := kademliaInstanceList[i].SelfContact
-// 		kademliaInstanceList[i-1].DoStore(&contact, instance1ID, value)
-// 	}
-// 	randint2 := rand.Intn(4 * MAX_BUCKET_SIZE)
-// 	instance2 := kademliaInstanceList[randint2]
-// 	// instance2ID := instance2.SelfContact.NodeID
-// 	randint3 := rand.Intn(4 * MAX_BUCKET_SIZE)
-// 	instance3 := kademliaInstanceList[randint3]
-// 	instance3Contact := instance3.SelfContact
-// 	instance3ID := instance3Contact.NodeID
-// 	responsevalue := instance2.DoIterativeFindValue(instance3ID)
-// 	responseNodeIDs := strings.SplitAfter(responsevalue, "ID:")
-// 	targetIDStr := responseNodeIDs[0]
-// 	//targetID := ID([]byte(strconv.Atoi(targetIDStr)))
-// 	// responsenode := instance2.DoFindNode(&instance3Contact, instance3ID)
-
-// 	if true {
-// 		t.Error("Node in Instance2 are stored incorrectly")
-// 		t.Error(responsevalue)
-// 		t.Error(targetIDStr)
-
-// 	}
-
-// 	return
-// }

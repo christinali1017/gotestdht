@@ -219,6 +219,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	if err != nil {
 		return err.Error()
 	}
+	fmt.Println("Store " + key.AsString() + " to " + contact.NodeID.AsString() + " Successfully")
 	k.UpdateContact(*contact)
 	defer client.Close()
 	return "ok"
@@ -294,8 +295,6 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 
 // 	return findNodeRes.Nodes
 // }
-
-
 
 func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
@@ -449,7 +448,7 @@ func (k *Kademlia) IterativeFindNode(id ID) []Contact {
 						checkImproved.mutex.Lock()
 						checkImproved.value = false
 						checkImproved.mutex.Unlock()
-					} else if unqueriedListLength != 0 && firstElement.SelfContact.NodeID.Xor(id).Compare(closest) != 1{
+					} else if unqueriedListLength != 0 && firstElement.SelfContact.NodeID.Xor(id).Compare(closest) != 1 {
 						closest = firstElement.SelfContact.NodeID.Xor(id)
 					}
 
@@ -817,11 +816,11 @@ HandleLoop:
 		clostestNode.shortDistanceMutex.RUnlock()
 		k.DoStore(&dostoreContact, key, returnValue)
 		for k := range returnedValueMap {
-			returnString = returnString + " ID: " + k.AsString() + "Value: " + string(returnValue[:]) + ", "
+			returnString = returnString + " ID: " + k.AsString() + " Value: " + string(returnValue[:]) + ", "
 		}
 		returnString = returnString[:len(returnString)-2]
 	} else {
-		returnString = "ERR: Value not found" + strconv.Itoa(stopType)
+		returnString = "ERR: Value not found"
 	}
 	return returnString
 }
