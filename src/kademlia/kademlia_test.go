@@ -191,9 +191,9 @@ func TestFindValue(t *testing.T) {
 	return
 }
 
-func TestIterativeFindNode(t *testing.T) {
+func TestIterativeFindFunctions(t *testing.T) {
 	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 300
+	numberOfNodes := 150
 
 	numberOfContactsPerNode := 30
 	instances := make([]Kademlia, numberOfNodes)
@@ -424,60 +424,13 @@ func TestIterativeFindNode(t *testing.T) {
 	}
 
 	fmt.Println("Finish iterative find node")
-
-	return
-}
-
-func TestIterativeFindValue(t *testing.T) {
-	fmt.Println("..............Find Value......")
-	fmt.Println(".........Begin test find node......")
-	numberOfNodes := 90
-	numberOfContactsPerNode := 30
-	instances := make([]Kademlia, numberOfNodes)
-	instancesAddr := make([]string, numberOfNodes)
-
-	//create 100 kademlia instance
-	fmt.Println("........Create instances......")
-	for i := 0; i < numberOfNodes; i++ {
-		port := i + 9000
-		address := "localhost:" + strconv.Itoa(port)
-		// fmt.Println("port is " + address)
-		instancesAddr[i] = address
-		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
-	}
-
-	fmt.Println(".........ping ......")
-	for i := 0; i < numberOfNodes; i++ {
-		address := instancesAddr[i]
-		host, port, _ := StringToIpPort(address)
-		start := i - numberOfContactsPerNode/2
-		end := i + numberOfContactsPerNode/2
-		if i >= numberOfContactsPerNode/2 && i <= numberOfNodes-numberOfContactsPerNode/2 {
-			for j := start; j < end; j++ {
-				instances[j].DoPing(host, port)
-			}
-		} else {
-			if i < numberOfContactsPerNode/2 {
-				for j := 0; j < numberOfContactsPerNode; j++ {
-					instances[j].DoPing(host, port)
-				}
-			} else if i > numberOfNodes-numberOfContactsPerNode/2 {
-				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
-					instances[j].DoPing(host, port)
-				}
-			}
-		}
-		fmt.Println(".........In ping ......")
-	}
-
+	fmt.Println("Test iterative find Value")
 	fmt.Println("..............Store to node......")
 	randint1 := rand.Intn(150)
-	randint1 = 0
 	instance1 := instances[randint1]
 	randint2 := rand.Intn(150)
 	instance2 := instances[randint2]
 	randint3 := rand.Intn(150)
-	randint3 = 60
 	instance3 := instances[randint3]
 	instance3Contact := instance3.SelfContact
 	instance3ID := instance3Contact.NodeID
@@ -495,5 +448,76 @@ func TestIterativeFindValue(t *testing.T) {
 		t.Error("return value: " + responsevalue)
 		t.Error("expect: " + theoreticalvalue)
 	}
+
 	return
 }
+
+// func TestIterativeFindValue(t *testing.T) {
+// 	fmt.Println("..............Find Value......")
+// 	fmt.Println(".........Begin test find node......")
+// 	numberOfNodes := 90
+// 	numberOfContactsPerNode := 30
+// 	instances := make([]Kademlia, numberOfNodes)
+// 	instancesAddr := make([]string, numberOfNodes)
+
+// 	//create 100 kademlia instance
+// 	fmt.Println("........Create instances......")
+// 	for i := 0; i < numberOfNodes; i++ {
+// 		port := i + 9000
+// 		address := "localhost:" + strconv.Itoa(port)
+// 		// fmt.Println("port is " + address)
+// 		instancesAddr[i] = address
+// 		instances[i] = *NewKademlia(CreateIdForTest(string(i)), address)
+// 	}
+
+// 	fmt.Println(".........ping ......")
+// 	for i := 0; i < numberOfNodes; i++ {
+// 		address := instancesAddr[i]
+// 		host, port, _ := StringToIpPort(address)
+// 		start := i - numberOfContactsPerNode/2
+// 		end := i + numberOfContactsPerNode/2
+// 		if i >= numberOfContactsPerNode/2 && i <= numberOfNodes-numberOfContactsPerNode/2 {
+// 			for j := start; j < end; j++ {
+// 				instances[j].DoPing(host, port)
+// 			}
+// 		} else {
+// 			if i < numberOfContactsPerNode/2 {
+// 				for j := 0; j < numberOfContactsPerNode; j++ {
+// 					instances[j].DoPing(host, port)
+// 				}
+// 			} else if i > numberOfNodes-numberOfContactsPerNode/2 {
+// 				for j := numberOfNodes - numberOfContactsPerNode; j < numberOfNodes; j++ {
+// 					instances[j].DoPing(host, port)
+// 				}
+// 			}
+// 		}
+// 		fmt.Println(".........In ping ......")
+// 	}
+
+// 	fmt.Println("..............Store to node......")
+// 	randint1 := rand.Intn(150)
+// 	randint1 = 0
+// 	instance1 := instances[randint1]
+// 	randint2 := rand.Intn(150)
+// 	instance2 := instances[randint2]
+// 	randint3 := rand.Intn(150)
+// 	randint3 = 60
+// 	instance3 := instances[randint3]
+// 	instance3Contact := instance3.SelfContact
+// 	instance3ID := instance3Contact.NodeID
+// 	svalue := strconv.Itoa(int(rand.Intn(256)))
+// 	value := []byte(svalue)
+// 	instance2.DoStore(&instance3Contact, instance3ID, value)
+// 	responsevalue := instance1.DoIterativeFindValue(instance3ID)
+// 	theoreticalvalue := " ID: " + instance3ID.AsString() + " Value: " + string(value[:])
+// 	if responsevalue == "ERR: Value not found" {
+// 		fmt.Println("Not Found: " + " Excuter: " + strconv.Itoa(randint1) + " Key: " + strconv.Itoa(randint3))
+// 		return
+// 	}
+// 	if responsevalue != theoreticalvalue {
+// 		t.Error("Iterative Find Value Error, return value is not correct")
+// 		t.Error("return value: " + responsevalue)
+// 		t.Error("expect: " + theoreticalvalue)
+// 	}
+// 	return
+// }

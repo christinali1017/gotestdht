@@ -263,39 +263,6 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	return "ok, result is: " + res
 }
 
-// func (k *Kademlia) DoFindNodeHelper(contact *Contact, searchKey ID) []Contact {
-// 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-
-// 	// client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
-// 	client, err := rpc.DialHTTPPath("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(contact.Port)))
-
-// 	if err != nil {
-
-// 		return nil
-// 	}
-
-// 	//create find node request and result
-// 	findNodeRequest := new(FindNodeRequest)
-// 	findNodeRequest.Sender = k.SelfContact
-// 	findNodeRequest.MsgID = NewRandomID()
-// 	findNodeRequest.NodeID = searchKey
-
-// 	findNodeRes := new(FindNodeResult)
-
-// 	//find node
-// 	err = client.Call("KademliaCore.FindNode", findNodeRequest, findNodeRes)
-// 	if err != nil {
-// 		return nil
-// 	}
-
-// 	//update contact
-// 	for _, contact := range findNodeRes.Nodes {
-// 		k.UpdateContact(contact)
-// 	}
-
-// 	return findNodeRes.Nodes
-// }
-
 func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	// client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
@@ -632,7 +599,7 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) string {
 	return result
 }
 func (k *Kademlia) DoIterativeFindValue(key ID) string {
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Come in to Iterative Find Value~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	// fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Come in to Iterative Find Value~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	// For project 2!
 	shortList := make(chan Contact, MAX_BUCKET_SIZE)
 
@@ -679,7 +646,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 		for {
 			select {
 			case contacter := <-contactChan:
-				fmt.Println("ShortList Active Incoming")
+				// fmt.Println("ShortList Active Incoming")
 				contacts := contacter.contactList
 				activeContact := contacter.selfContact
 				shortList <- activeContact
@@ -703,7 +670,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					queryWaitList.queryListMutex.Lock()
 					sort.Sort(ByDistance(queryWaitList.waitList))
 					if len(queryWaitList.waitList) == 0 {
-						fmt.Println("not improve because wait list length is !!!!!!!!!!!!!")
+						// fmt.Println("not improve because wait list length is !!!!!!!!!!!!!")
 						clostestNodeImproved = false
 						break
 					}
@@ -713,7 +680,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					//check if short list is improved
 					clostestNode.shortDistanceMutex.Lock()
 					if clostestNode.Distance.Compare(clostestNode.Distance) == 1 {
-						fmt.Println("not improve because no close!!!!!!!!!!!!!!!!!!!!!!!")
+						// fmt.Println("not improve because no close!!!!!!!!!!!!!!!!!!!!!!!")
 						clostestNodeImproved = false
 					} else {
 						clostestNode.Distance = distanceTemp
@@ -747,7 +714,7 @@ HandleLoop:
 				stopper.stopMutex.Lock()
 				stopper.value = 2
 				stopper.stopMutex.Unlock()
-				fmt.Println("Set the stop")
+				// fmt.Println("Set the stop")
 				stop <- true
 			}
 		}
@@ -777,7 +744,7 @@ HandleLoop:
 		case <-time.After(TIME_INTERVAL):
 			break
 		case <-stop:
-			fmt.Println("Stop here Print")
+			// fmt.Println("Stop here Print")
 			break HandleLoop
 		}
 	}
@@ -841,7 +808,7 @@ func (k *Kademlia) iterFindValuQeuery(contact Contact, searchKey ID, contactChan
 
 	//find value
 	err = client.Call("KademliaCore.FindValue", findValueReq, findValueRes)
-	fmt.Println("Get RPC call back")
+	// fmt.Println("Get RPC call back")
 	if err != nil {
 		return err
 
@@ -860,13 +827,13 @@ func (k *Kademlia) iterFindValuQeuery(contact Contact, searchKey ID, contactChan
 		valuer := new(Valuer)
 		valuer.value = findValueRes.Value
 		valuer.NodeID = contact.NodeID
-		fmt.Println("Put things in valueChan")
+		// fmt.Println("Put things in valueChan")
 		valuerChan <- *valuer
 	} else if findValueRes.Nodes != nil {
 		contacter := new(Contacter)
 		contacter.contactList = findValueRes.Nodes
 		contacter.selfContact = contact
-		fmt.Println("Put things in contactChan")
+		// fmt.Println("Put things in contactChan")
 		contactChan <- *contacter
 	}
 	return err
